@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose');
+const { MongoClient } = require('mongodb');
 
 const app = express();
 
@@ -9,16 +9,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Database connection
-const mongoURI = process.env.MONGO_URI || 'mongodb://localhost:27017/bec-courses';
-mongoose.connect(mongoURI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-})
-    .then(() => console.log('✓ MongoDB connected'))
-    .catch(err => console.error('✗ MongoDB connection error:', err));
-
-// Routes
+// Routes (registered before connection; handlers will use `app.locals.collections` at request time)
 app.use('/api/courses', require('./routes/courses'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/health', require('./routes/health'));
@@ -34,8 +25,32 @@ app.use((req, res) => {
     res.status(404).json({ error: 'Route not found' });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`\n🚀 Server running on http://localhost:${PORT}`);
-    console.log(`📝 API docs: http://localhost:${PORT}/api/health\n`);
-});
+// Database connection and server start
+const mongoURI = process.env.MONGO_URI || 'mongodb://localhost:27017';
+const dbName = process.env.DB_NAME || 'bec-courses';
+const client = new MongoClient(mongoURI);
+
+async function start() {
+    try {
+        await client.connect();
+        const db = client.db(dbName);
+        app.locals.db = db;
+        app.locals.collections = {
+            courses: db.collection('courses'),
+            orders: db.collection('orders'),
+        };
+
+        console.log('✓ MongoDB connected');
+
+        const PORT = process.env.PORT || 5000;
+        app.listen(PORT, () => {
+            console.log(`\n🚀 Server running on http://localhost:${PORT}`);
+            console.log(`📝 API docs: http://localhost:${PORT}/api/health\n`);
+        });
+    } catch (err) {
+        console.error('✗ MongoDB connection error:', err);
+        process.exit(1);
+    }
+}
+
+start();

@@ -1,12 +1,16 @@
 const express = require('express');
-const Course = require('../models/Course');
+const { ObjectId } = require('mongodb');
 
 const router = express.Router();
+
+function coursesCollection(req) {
+    return req.app.locals.collections.courses;
+}
 
 // GET all courses
 router.get('/', async (req, res) => {
     try {
-        const courses = await Course.find({});
+        const courses = await coursesCollection(req).find({}).toArray();
         res.json(courses);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -16,7 +20,8 @@ router.get('/', async (req, res) => {
 // GET course by ID
 router.get('/:id', async (req, res) => {
     try {
-        const course = await Course.findById(req.params.id);
+        const id = req.params.id;
+        const course = await coursesCollection(req).findOne({ _id: new ObjectId(id) });
         if (!course) return res.status(404).json({ error: 'Course not found' });
         res.json(course);
     } catch (err) {
@@ -27,24 +32,31 @@ router.get('/:id', async (req, res) => {
 // POST create new course
 router.post('/', async (req, res) => {
     try {
-        const { title, author, price, spaces, imageUrl, category } = req.body;
-        if (!title || !author || !price) {
+        const { title, author, price, spaces = 30, imageUrl = '', category = 'General' } = req.body;
+        if (!title || !author || price === undefined) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
-        const course = new Course({ title, author, price, spaces, imageUrl, category });
-        await course.save();
-        res.status(201).json(course);
+        const now = new Date();
+        const doc = { title, author, price, spaces, imageUrl, category, createdAt: now, updatedAt: now };
+        const result = await coursesCollection(req).insertOne(doc);
+        res.status(201).json({ _id: result.insertedId, ...doc });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// PUT update course (e.g., reduce spaces after purchase)
+// PUT update course
 router.put('/:id', async (req, res) => {
     try {
-        const course = await Course.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        if (!course) return res.status(404).json({ error: 'Course not found' });
-        res.json(course);
+        const id = req.params.id;
+        const update = { ...req.body, updatedAt: new Date() };
+        const result = await coursesCollection(req).findOneAndUpdate(
+            { _id: new ObjectId(id) },
+            { $set: update },
+            { returnDocument: 'after' }
+        );
+        if (!result.value) return res.status(404).json({ error: 'Course not found' });
+        res.json(result.value);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -53,8 +65,9 @@ router.put('/:id', async (req, res) => {
 // DELETE course
 router.delete('/:id', async (req, res) => {
     try {
-        const course = await Course.findByIdAndDelete(req.params.id);
-        if (!course) return res.status(404).json({ error: 'Course not found' });
+        const id = req.params.id;
+        const result = await coursesCollection(req).deleteOne({ _id: new ObjectId(id) });
+        if (result.deletedCount === 0) return res.status(404).json({ error: 'Course not found' });
         res.json({ message: 'Course deleted' });
     } catch (err) {
         res.status(500).json({ error: err.message });

@@ -1,23 +1,11 @@
-const mongoose = require('mongoose');
+// Models are now handled via native `mongodb` collections attached to `app.locals.collections`.
+// Keep this file as a lightweight compatibility stub.
 
-const orderSchema = new mongoose.Schema(
-    {
-        customerName: { type: String, required: true },
-        customerPhone: { type: String, required: true },
-        customerEmail: { type: String, default: '' },
-        items: [
-            {
-                courseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true },
-                title: String,
-                price: Number,
-                quantity: { type: Number, default: 1 },
-            },
-        ],
-        totalPrice: { type: Number, required: true },
-        status: { type: String, enum: ['pending', 'completed', 'cancelled'], default: 'pending' },
-        notes: { type: String, default: '' },
+module.exports = {
+    getCollection: (appOrReq) => {
+        if (appOrReq && appOrReq.app) appOrReq = appOrReq.app;
+        return appOrReq && appOrReq.locals && appOrReq.locals.collections
+            ? appOrReq.locals.collections.orders
+            : null;
     },
-    { timestamps: true }
-);
-
-module.exports = mongoose.model('Order', orderSchema);
+};

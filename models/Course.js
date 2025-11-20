@@ -1,16 +1,12 @@
-const mongoose = require('mongoose');
+// Models are now handled via native `mongodb` collections attached to `app.locals.collections`.
+// Keep this file as a lightweight compatibility stub.
 
-const courseSchema = new mongoose.Schema(
-    {
-        title: { type: String, required: true },
-        author: { type: String, required: true },
-        price: { type: Number, required: true },
-        spaces: { type: Number, default: 30 },
-        imageUrl: { type: String, default: '' },
-        description: { type: String, default: '' },
-        category: { type: String, default: 'General' },
+module.exports = {
+    // Helper to get the collection from an Express `app` or `req` object
+    getCollection: (appOrReq) => {
+        if (appOrReq && appOrReq.app) appOrReq = appOrReq.app; // if a req was passed
+        return appOrReq && appOrReq.locals && appOrReq.locals.collections
+            ? appOrReq.locals.collections.courses
+            : null;
     },
-    { timestamps: true }
-);
-
-module.exports = mongoose.model('Course', courseSchema);
+};
