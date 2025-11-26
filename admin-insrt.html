@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Insert Courses</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 20px; }
+        textarea { width: 100%; height: 400px; font-family: monospace; padding: 10px; }
+        button { padding: 10px 20px; margin-top: 10px; background: #0066ff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0052cc; }
+        .response { margin-top: 20px; padding: 10px; border-radius: 5px; }
+        .success { background: #d1fae5; color: #065f46; }
+        .error { background: #fee2e2; color: #991b1b; }
+        .example { background: #f3f4f6; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <h1>Admin Panel - Insert Courses</h1>
+    
+    <div class="example">
+        <strong>Example JSON (paste into textarea below):</strong>
+        <pre>
+[
+  {
+    "title": "Python for Beginners",
+    "instructor": "John Smith",
+    "location": "London",
+    "topic": "Programming",
+    "price": 29.99,
+    "spaces": 5,
+    "rating": 4.8,
+    "imageUrl": "https://source.unsplash.com/featured/300x200?python&sig=c1"
+  },
+  {
+    "title": "Web Development with React",
+    "instructor": "Jane Doe",
+    "location": "Manchester",
+    "topic": "Programming",
+    "price": 39.99,
+    "spaces": 8,
+    "rating": 4.9,
+    "imageUrl": "https://source.unsplash.com/featured/300x200?react&sig=c2"
+  }
+]
+        </pre>
+    </div>
+
+    <h2>Paste Course JSON:</h2>
+    <textarea id="coursesJson" placeholder="Paste your courses JSON array here..."></textarea>
+    
+    <div>
+        <button onclick="insertCourses()">Insert Courses</button>
+        <button onclick="clearAllCourses()">Clear All Courses</button>
+    </div>
+    
+    <div id="response"></div>
+
+    <script>
+        async function insertCourses() {
+            const responseDiv = document.getElementById('response');
+            try {
+                const json = document.getElementById('coursesJson').value;
+                const courses = JSON.parse(json);
+                
+                const res = await fetch('http://localhost:5000/api/admin/insert-courses', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(courses)
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    responseDiv.className = 'response success';
+                    responseDiv.innerHTML = `<strong>✓ Success!</strong> Inserted ${data.insertedCount} courses.<br><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    responseDiv.className = 'response error';
+                    responseDiv.innerHTML = `<strong>✗ Error:</strong> ${data.error}`;
+                }
+            } catch (error) {
+                responseDiv.className = 'response error';
+                responseDiv.innerHTML = `<strong>✗ Error:</strong> ${error.message}`;
+            }
+        }
+
+        async function clearAllCourses() {
+            if (!confirm('Are you sure? This will delete ALL courses from the database.')) return;
+            
+            const responseDiv = document.getElementById('response');
+            try {
+                const res = await fetch('http://localhost:5000/api/admin/clear-courses', { method: 'GET' });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    responseDiv.className = 'response success';
+                    responseDiv.innerHTML = `<strong>✓ Success!</strong> Deleted ${data.deletedCount} courses.`;
+                } else {
+                    responseDiv.className = 'response error';
+                    responseDiv.innerHTML = `<strong>✗ Error:</strong> ${data.error}`;
+                }
+            } catch (error) {
+                responseDiv.className = 'response error';
+                responseDiv.innerHTML = `<strong>✗ Error:</strong> ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
