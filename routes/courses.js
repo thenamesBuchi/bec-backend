@@ -22,24 +22,54 @@ router.get('/:id', async (req, res) => {
     try {
         const id = req.params.id;
         const course = await coursesCollection(req).findOne({ _id: new ObjectId(id) });
+
         if (!course) return res.status(404).json({ error: 'Course not found' });
+
         res.json(course);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// POST create new course
+// POST create a new course
 router.post('/', async (req, res) => {
     try {
-        const { title, author, price, spaces = 30, imageUrl = '', category = 'General' } = req.body;
-        if (!title || !author || price === undefined) {
-            return res.status(400).json({ error: 'Missing required fields' });
+        const {
+            title,
+            instructor,
+            topic,
+            location,
+            category,
+            price,
+            spaces = 30,
+            rating = 0,
+            imageUrl = ''
+        } = req.body;
+
+        if (!title || !instructor || price === undefined) {
+            return res.status(400).json({ error: 'Missing required fields: title, instructor, price' });
         }
+
         const now = new Date();
-        const doc = { title, author, price, spaces, imageUrl, category, createdAt: now, updatedAt: now };
+
+        const doc = {
+            title,
+            instructor,
+            topic,
+            location,
+            category,
+            price,
+            spaces,
+            rating,
+            imageUrl,
+            createdAt: now,
+            updatedAt: now
+        };
+
         const result = await coursesCollection(req).insertOne(doc);
+
         res.status(201).json({ _id: result.insertedId, ...doc });
+
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -49,14 +79,22 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const id = req.params.id;
-        const update = { ...req.body, updatedAt: new Date() };
+
+        const update = {
+            ...req.body,
+            updatedAt: new Date()
+        };
+
         const result = await coursesCollection(req).findOneAndUpdate(
             { _id: new ObjectId(id) },
             { $set: update },
             { returnDocument: 'after' }
         );
+
         if (!result.value) return res.status(404).json({ error: 'Course not found' });
+
         res.json(result.value);
+
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -66,9 +104,14 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
     try {
         const id = req.params.id;
+
         const result = await coursesCollection(req).deleteOne({ _id: new ObjectId(id) });
-        if (result.deletedCount === 0) return res.status(404).json({ error: 'Course not found' });
+
+        if (result.deletedCount === 0)
+            return res.status(404).json({ error: 'Course not found' });
+
         res.json({ message: 'Course deleted' });
+
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
