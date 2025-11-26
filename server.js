@@ -9,10 +9,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Routes (registered before connection; handlers will use `app.locals.collections` at request time)
+// Routes
 app.use('/api/courses', require('./routes/courses'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/health', require('./routes/health'));
+
+const adminRoutes = require('./routes/admin');
+app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -25,19 +28,27 @@ app.use((req, res) => {
     res.status(404).json({ error: 'Route not found' });
 });
 
-// Database connection and server start
-const mongoURI = process.env.MONGO_URI || 'mongodb://localhost:27017';
-const dbName = process.env.DB_NAME || 'bec-courses';
+// -------------------------------------------------------
+//  🔥 Corrected for Render + MongoDB Atlas
+// -------------------------------------------------------
+const mongoURI = process.env.MONGO_URI;     // MUST come from environment
+const dbName = 'bec-courses';               // Atlas auto-creates database
+
 const client = new MongoClient(mongoURI);
 
 async function start() {
     try {
         await client.connect();
         const db = client.db(dbName);
+
+        const mongoURI = process.env.MONGO_URI;
+        const dbName = process.env.DB_NAME || 'bec-courses';
+
         app.locals.db = db;
         app.locals.collections = {
             courses: db.collection('courses'),
             orders: db.collection('orders'),
+            
         };
 
         console.log('✓ MongoDB connected');
@@ -47,6 +58,7 @@ async function start() {
             console.log(`\n🚀 Server running on http://localhost:${PORT}`);
             console.log(`📝 API docs: http://localhost:${PORT}/api/health\n`);
         });
+
     } catch (err) {
         console.error('✗ MongoDB connection error:', err);
         process.exit(1);
