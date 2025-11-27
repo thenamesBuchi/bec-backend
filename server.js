@@ -32,23 +32,25 @@ app.use((req, res) => {
 //  🔥 Corrected for Render + MongoDB Atlas
 // -------------------------------------------------------
 const mongoURI = process.env.MONGO_URI;     // MUST come from environment
+if (!mongoURI) {
+    console.error('❌ MONGO_URI environment variable is not set. Please set it in your deployment environment (e.g., Render dashboard).');
+    process.exit(1);
+}
 const dbName = 'bec-courses';               // Atlas auto-creates database
 
 const client = new MongoClient(mongoURI);
+
 
 async function start() {
     try {
         await client.connect();
         const db = client.db(dbName);
 
-        const mongoURI = process.env.MONGO_URI;
-        const dbName = process.env.DB_NAME || 'bec-courses';
-
         app.locals.db = db;
         app.locals.collections = {
             courses: db.collection('courses'),
             orders: db.collection('orders'),
-            
+
         };
 
         console.log('✓ MongoDB connected');
