@@ -9,6 +9,20 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// LOGGER MIDDLEWARE 
+app.use((req, res, next) => {
+    const now = new Date().toISOString();
+    console.log(`[${now}] ${req.method} ${req.url}`);
+    next();
+});
+
+// Static files logger
+app.use("/images", express.static(path.join(__dirname, "images")));
+
+app.use("/images", (req, res) => {
+    res.status(404).json({ error: "Image not found" });
+});
+
 // Routes
 app.use('/api/courses', require('./routes/courses'));
 app.use('/api/orders', require('./routes/orders'));
